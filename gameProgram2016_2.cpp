@@ -16,7 +16,7 @@ const int WIN_WIDTH = 615;
 const int WIN_HEIGHT = 365;
 const int NUM_SNOW = 20;
 const int SPEED_X = 1;
-const int SPEED_Y = 10;
+int SPEED_Y = 10;
 
 HDC	hdc, hdcBuf, hdcBody;
 HBITMAP backgroundBmp, snowBmp;
@@ -176,6 +176,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			print();
 			snowDrop();
 			break;
+		case WM_KEYDOWN:
+			if (wParam == VK_UP)
+				SPEED_Y++;
+			else if (wParam == VK_DOWN)
+				SPEED_Y--;
+			if (SPEED_Y < 0)
+				SPEED_Y = 0;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
    }

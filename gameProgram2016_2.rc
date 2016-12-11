@@ -114,7 +114,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_APP_TITLE           "游戏程序设计作业-雪花飘落"
+    IDS_APP_TITLE           "游戏程序设计作业-雪花飘落（上下方向键控制速度）"
     IDS_HELLO               "Hello World!"
     IDC_GAMEPROGRAM2016_2   "GAMEPROGRAM2016_2"
 END

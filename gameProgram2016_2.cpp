@@ -1,6 +1,6 @@
 // gameProgram2016_2.cpp : Defines the entry point for the application.
 //
-
+#include <stdlib.h>
 #include "stdafx.h"
 #include "resource.h"
 
@@ -11,11 +11,33 @@ HINSTANCE hInst;								// current instance
 TCHAR szTitle[MAX_LOADSTRING];								// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];								// The title bar text
 
+const int REFRESH_INTERVAL = 5;
+const int WIN_WIDTH = 615;
+const int WIN_HEIGHT = 365;
+const int NUM_SNOW = 20;
+const int SPEED_X = 1;
+const int SPEED_Y = 10;
+
+HDC	hdc, hdcBuf, hdcBody;
+HBITMAP backgroundBmp, snowBmp;
+RECT	rect;
+
+struct Point
+{
+	int x;
+	int y;
+};
+Point snows[NUM_SNOW];
+
 // Foward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
+
+void initSnows();
+void print();
+void snowDrop();
 
 int APIENTRY WinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
@@ -52,21 +74,6 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	return msg.wParam;
 }
 
-
-
-//
-//  FUNCTION: MyRegisterClass()
-//
-//  PURPOSE: Registers the window class.
-//
-//  COMMENTS:
-//
-//    This function and its usage is only necessary if you want this code
-//    to be compatible with Win32 systems prior to the 'RegisterClassEx'
-//    function that was added to Windows 95. It is important to call this function
-//    so that the application will get 'well formed' small icons associated
-//    with it.
-//
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
 	WNDCLASSEX wcex;
@@ -88,46 +95,46 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	return RegisterClassEx(&wcex);
 }
 
-//
-//   FUNCTION: InitInstance(HANDLE, int)
-//
-//   PURPOSE: Saves instance handle and creates main window
-//
-//   COMMENTS:
-//
-//        In this function, we save the instance handle in a global variable and
-//        create and display the main program window.
-//
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-   HWND hWnd;
+	HWND hWnd;
 
-   hInst = hInstance; // Store instance handle in our global variable
+	hInst = hInstance; // Store instance handle in our global variable
 
-   hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+	hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+		                CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
-   if (!hWnd)
-   {
-      return FALSE;
-   }
+    if (!hWnd)
+    {
+        return FALSE;
+    }
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+    ShowWindow(hWnd, nCmdShow);
+    UpdateWindow(hWnd);
 
-   return TRUE;
+   
+	MoveWindow(hWnd, 10, 10, WIN_WIDTH, WIN_HEIGHT, true);
+	ShowWindow(hWnd, nCmdShow);
+	UpdateWindow(hWnd);
+   
+	hdc = GetDC(hWnd);
+	hdcBuf = CreateCompatibleDC(hdc);
+   
+	hdcBody = CreateCompatibleDC(hdc);
+	HBITMAP bmp = CreateCompatibleBitmap(hdc, WIN_WIDTH, WIN_HEIGHT);
+   
+	SelectObject(hdcBuf, bmp);
+   
+    backgroundBmp = (HBITMAP)LoadImage(NULL, "background.bmp", IMAGE_BITMAP, rect.right, rect.bottom, LR_LOADFROMFILE);
+    snowBmp = (HBITMAP)LoadImage(NULL, "snow.bmp", IMAGE_BITMAP, 20, 20, LR_LOADFROMFILE);
+      
+	SetTimer(hWnd, 0, REFRESH_INTERVAL, NULL);
+
+	initSnows();
+
+	return TRUE;
 }
 
-//
-//  FUNCTION: WndProc(HWND, unsigned, WORD, LONG)
-//
-//  PURPOSE:  Processes messages for the main window.
-//
-//  WM_COMMAND	- process the application menu
-//  WM_PAINT	- Paint the main window
-//  WM_DESTROY	- post a quit message and return
-//
-//
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	int wmId, wmEvent;
@@ -165,6 +172,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			break;
+		case WM_TIMER: // 定时器消息
+			print();
+			snowDrop();
+			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
    }
@@ -188,4 +199,48 @@ LRESULT CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 	}
     return FALSE;
+}
+
+// 初始化雪花
+void initSnows()
+{
+	srand((unsigned)(GetTickCount()));
+	for (int i = 0; i < NUM_SNOW; i++)
+	{
+		snows[i].x = rand() % WIN_WIDTH;
+		snows[i].y = rand() % WIN_HEIGHT;
+	}
+}
+
+// 雪花飘落
+void snowDrop()
+{
+	for (int i = 0; i < NUM_SNOW; i++)
+	{
+		snows[i].x += (rand() % 2 ? 1 : -1) * SPEED_X;
+		snows[i].y += SPEED_Y;
+		if (snows[i].y >= WIN_HEIGHT)
+		{
+			snows[i].x = rand() % WIN_WIDTH;
+			snows[i].y = -20;
+		}
+	}
+}
+
+void print()
+{
+	SelectObject(hdcBody, backgroundBmp);
+	BitBlt(hdcBuf, 0, 0, WIN_WIDTH, WIN_WIDTH, hdcBody, 0, 0, SRCCOPY);
+
+	for (int i = 0; i < NUM_SNOW; i++)
+	{	
+		Sleep(1);
+		
+		SelectObject(hdcBody, snowBmp);
+		BitBlt(hdcBuf, snows[i].x, snows[i].y, 20, 20, hdcBody, 0, 0, SRCPAINT);
+	}
+	
+	
+	//将mdc中的全部内容贴到hdc中
+	BitBlt(hdc, 0, 0, WIN_WIDTH, WIN_WIDTH, hdcBuf, 0, 0, SRCCOPY);
 }
